@@ -330,16 +330,9 @@ func main() {
 
 	// Calculate movements
 	go func() {
-		window := gocv.NewWindow("Hello")
-
 		for {
 
-			if img.Empty() {
-				continue
-			}
-
-			window.IMShow(img)
-			window.WaitKey(1)
+			time.Sleep(time.Hour)
 		}
 	}()
 
