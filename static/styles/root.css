@@ -1,0 +1,225 @@
+html {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    margin: 0;
+    padding-left: 10%;
+    padding-top: 7.5%;
+    padding-right: 5%;
+
+    background-color: #EEF5DB;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#webcam {
+    border-radius: 10px;
+    height: 75vh;
+    width: auto;
+
+    box-shadow: 25px 25px 25px 0px #22577A;
+    z-index: 9998;
+}
+
+#used-camera {
+    position: absolute;
+    top: 10px;
+    left: 50vw;
+    transform: translate(-50%, 0);
+    
+    height: 50px;
+    width: 50vw;
+
+    border-radius: 20px;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+
+    background-color: #d06a4e;
+    color: white;
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-size: 1.5em;
+    
+    user-select: none;
+    cursor: pointer;
+
+
+    padding-left: 10px;
+    padding-right: 10px;
+
+    box-shadow: 15px 15px 25px 0px #22577A;
+}
+
+#drop-button {
+    height: 35px;
+    width: auto;
+    transition: all .5s ease-in-out;
+}
+
+#cameras {
+    position: absolute;
+    height: auto;
+    width: 50vw;
+    padding: 10px;
+    border-radius: 20px;
+    
+    top: 70px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    
+    background-color: white;
+
+    transition: all .5s ease-in-out;
+    z-index: 10000;
+}
+
+.camera-entry {
+    height: 35px;
+    width: 100%;
+    border-top: #331832;
+    border-bottom: white;
+    border-left: white;
+    border-right: white;
+    border-width: 5px;
+    border-style: solid;
+    
+    margin-top: 10px;
+    font-size: 20px;
+    cursor: pointer;
+
+    transition: .3s ease-in-out;
+}
+
+.camera-entry:hover {
+    border-color: #331832;
+}
+
+#right-panel {
+    margin-left: 10vw;
+    height: 75vh;
+    width: 100%;
+    border-radius: 20px;
+    padding: 10px;
+
+
+    background-color: #d06a4e;
+    box-shadow: 25px 25px 25px 0px #22577A;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+    z-index: 9999;
+}
+
+#button {
+    width: 75%;
+    height: 50px;
+    background-color: #331832;
+    border-radius: 10px;
+    cursor: pointer;
+
+    transition: .5s ease-in-out;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    text-align: center;
+    font-size: 1.5em;
+    color: white;
+}
+
+#button:hover {
+    box-shadow: 0 0 25px 0px #EEF5DB;
+}
+
+#coorddisp {
+    width: 100%;
+    height: 7cm;
+    font-size: 1.5em;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#coorddisp .row {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+}
+
+#coorddisp .top-row {
+    color: white;
+    font-weight: 900;
+}
+
+#coorddisp .bottom-row {
+    color: #331832;
+    font-size: 1.75em;
+}
+
+#controlPanel {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+}
+
+#controlPanel img {
+    width: 50px;
+    height: auto;
+    cursor: pointer;
+
+    background-color: #EEF5DB;
+    border-radius: 100%;
+    padding: 20px;
+    margin: 10px;
+}
+
+#controlPanel img:active {
+    background-color: #331832;
+}
+
+#planar {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+}
+
+#up-ctrl {
+    transform: rotate(180deg);
+    margin-bottom: 50px;
+}
+
+#forward-ctrl {
+    transform: rotate(180deg);
+}
+
+#left-ctrl {
+    transform: rotate(90deg);
+}
+
+#right-ctrl {
+    transform: rotate(-90deg);
+}
+
+#ctrl-middle-row {
+    display: flex;
+    flex-direction: row;
+}
