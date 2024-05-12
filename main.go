@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"gocv.io/x/gocv"
+	"gopkg.in/yaml.v3"
 )
 
 var upgrader = websocket.Upgrader{
@@ -29,9 +31,49 @@ type data struct {
 	content string
 }
 
+type Calibrations struct {
+	// Image settings
+	Resolution_x int
+	Resolution_y int
+	Flip_x_axis  bool
+	Flip_y_axis  bool
+
+	// Detection rules
+	Hue        [2]float64
+	Saturation [2]float64
+	Lightness  [2]float64
+
+	// Sensitivity settings
+	Center_offset_x int
+	Center_offset_y int
+	Max_deviation   int
+
+	// Networking settings
+	Request_ip  string
+	Webgui_port string
+
+	// Debugging settings
+	Live_reload     bool
+	Reload_interval uint
+
+	// Speed settings
+	Rotation_speed  int
+	Upwards_speed   int
+	Downwards_speed int
+
+	// Limit settings
+	Rotation_limit  int
+	Upwards_limit   int
+	Downwards_limit int
+}
+
 var globalCollectedData []data
+var calibrationData Calibrations
+var calibrationsLoaded = false
 var img gocv.Mat
 var cam *gocv.VideoCapture
+
+var HTTPclient = &http.Client{}
 
 func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
 	runtime.LockOSThread()
@@ -40,8 +82,8 @@ func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
 	gocv.CvtColor(img, &img, gocv.ColorBGRToHLS)
 
 	// Apply mask
-	lower_bound := gocv.NewMatWithSizeFromScalar(gocv.NewScalar(85.0/2, 0.0, 10.0/100*255, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
-	upper_bound := gocv.NewMatWithSizeFromScalar(gocv.NewScalar(150.0/2, 70.0/100*255, 255.0, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
+	lower_bound := gocv.NewMatWithSizeFromScalar(gocv.NewScalar(calibrationData.Hue[0]/2.0, calibrationData.Lightness[0]/100.0*255.0, calibrationData.Saturation[0]/100.0*255.0, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
+	upper_bound := gocv.NewMatWithSizeFromScalar(gocv.NewScalar(calibrationData.Hue[1]/2.0, calibrationData.Lightness[1]/100.0*255.0, calibrationData.Saturation[1]/100.0*255.0, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
 	mask := gocv.NewMat()
 	gocv.InRange(img, lower_bound, upper_bound, &mask)
 	removedMask := gocv.NewMat()
@@ -160,7 +202,8 @@ func handleHTTP() {
 	http.HandleFunc("/ws", handleWebSocket)
 
 	// Run server
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Started webserver on port", calibrationData.Webgui_port)
+	log.Fatal(http.ListenAndServe(calibrationData.Webgui_port, nil))
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -281,10 +324,25 @@ func collectData() {
 				return
 			}
 
+			// Flip image
+			if calibrationData.Flip_x_axis && calibrationData.Flip_y_axis {
+				gocv.Flip(temp, &temp, -1)
+			} else if calibrationData.Flip_x_axis {
+				gocv.Flip(temp, &temp, 0)
+			} else if calibrationData.Flip_y_axis {
+				gocv.Flip(temp, &temp, 1)
+			}
+
 			// Convert img
 			Cx, Cy := -1, -1
 			if globalCollectedData[4].content == "0" {
 				_, Cx, Cy = findGreen(temp, 100)
+			}
+
+			// Convert Cx and Cy to the desired resolution
+			if Cx != -1 {
+				Cx = int(float64(Cx) / float64(temp.Cols()) * float64(calibrationData.Resolution_x))
+				Cy = int(float64(Cy) / float64(temp.Rows()) * float64(calibrationData.Resolution_y))
 			}
 
 			// Replace original img
@@ -320,10 +378,122 @@ func collectData() {
 	}
 }
 
+func move(rotation int, up int, extension int, grip bool) error {
+	// Make a request
+	req, err := http.NewRequest("POST", calibrationData.Request_ip, nil)
+	if err != nil {
+		return err
+	}
+
+	// Set user agent
+	req.Header.Set("User-Agent", "oviwebgui/2024.1.2")
+
+	// Set rotation
+	if rotation > 0 {
+		req.Header.Set("R1", fmt.Sprint(rotation))
+		req.Header.Set("R2", "0")
+	} else if rotation < 0 {
+		req.Header.Set("R1", "0")
+		req.Header.Set("R2", fmt.Sprint(math.Abs(float64(rotation))))
+	} else {
+		req.Header.Set("R1", "0")
+		req.Header.Set("R2", "0")
+	}
+
+	// Set upwards movement
+	if rotation > 0 {
+		req.Header.Set("U1", fmt.Sprint(up))
+		req.Header.Set("U2", "0")
+	} else if rotation < 0 {
+		req.Header.Set("U1", "0")
+		req.Header.Set("U2", fmt.Sprint(math.Abs(float64(up))))
+	} else {
+		req.Header.Set("U1", "0")
+		req.Header.Set("U2", "0")
+	}
+
+	// Set extend
+	if rotation > 0 {
+		req.Header.Set("E1", fmt.Sprint(extension))
+		req.Header.Set("E2", "0")
+	} else if rotation < 0 {
+		req.Header.Set("E1", "0")
+		req.Header.Set("E2", fmt.Sprint(math.Abs(float64(extension))))
+	} else {
+		req.Header.Set("E1", "0")
+		req.Header.Set("E2", "0")
+	}
+
+	// Set gripper position
+	if grip {
+		req.Header.Set("G", "255")
+	} else {
+		req.Header.Set("G", "0")
+	}
+
+	// Make request
+	resp, err := HTTPclient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Error checking
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP POST request failed with code %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func loadConfig() error {
+	// Read calibrations file
+	f, err := os.ReadFile("calibrations.yml")
+	if err != nil {
+		return err
+	}
+
+	// Unmarshall the file
+	err = yaml.Unmarshal(f, &calibrationData)
+	if err != nil {
+		return err
+	}
+	calibrationsLoaded = true
+	return nil
+}
+
+func loadConfigContinuous() {
+	for {
+		// Load config
+		err := loadConfig()
+		if err != nil {
+			log.Println(err)
+		}
+
+		// If not continuous, break
+		if !calibrationData.Live_reload {
+			break
+		}
+		time.Sleep(time.Duration(calibrationData.Reload_interval) * time.Millisecond)
+	}
+
+	log.Println("Loaded calibrations in non-live mode")
+}
+
 func main() {
 	// Initialize data
+	go loadConfigContinuous()
 	globalCollectedData = make([]data, 20)
 	img = gocv.NewMat()
+
+	// Await initialization
+	log.Println("Waiting for calibrations file to load")
+	for !calibrationsLoaded {
+		time.Sleep(time.Millisecond)
+	}
+	log.Println("Calibrations data loaded")
+
+	fmt.Println(calibrationData)
 
 	// Start webserver
 	go handleHTTP()
@@ -331,11 +501,22 @@ func main() {
 	// Calculate movements
 	go func() {
 		for {
-
-			time.Sleep(time.Hour)
+			if globalCollectedData[4].content == "0" {
+				autoRoam()
+			} else {
+				manulaRoam()
+			}
 		}
 	}()
 
 	// Start collecting data
 	collectData()
+}
+
+func autoRoam() {
+	// fmt.Println("AUTO")
+}
+
+func manulaRoam() {
+	// fmt.Println("MANUAL")
 }

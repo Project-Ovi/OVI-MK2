@@ -39,7 +39,6 @@ function connect() {
                     child.onclick = function() {
                         toggle_drop_down();
                         websocket.send("CAM" + i);
-                        console.log("CAM"+i);
                     }
                     child.textContent = cameras[i];
                     child.classList.add("camera-entry")
@@ -60,7 +59,6 @@ function connect() {
                 break;
             case "MAN":
                 manual = event.data.substring(3);
-                console.log(event.data);
                 if (manual == "1") {
                     coorddisp.style.display = "none";
                     ctrlPanel.style.display = "flex";
@@ -105,7 +103,6 @@ function stopChildren(parent) {
     }
 }
 function flexChildren(parent) {
-    console.log("flexing children");
     for (let i=0; i < parent.children.length; i++) {
         parent.children[i].style.display = "flex"
     }
@@ -117,7 +114,6 @@ drop_down_button.onclick = toggle_drop_down;
 
 toggleButton.onclick = function() {
     websocket.send("MAN" + Math.abs(manual-1));
-    console.log("MAN" + 1);
 }
 
 document.getElementById("forward-ctrl").onclick = function () {
