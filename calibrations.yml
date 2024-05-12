@@ -1,0 +1,75 @@
+#############################################################################################
+#                                  Robot Calibration Settings                               #
+#                                                                                           #
+#!                       IMPORTANT: PLEASE READ BEFORE MAKING ANY CHANGES                  !#
+#                                                                                           #
+#                                                                                           #
+# Organization: OVI Robotics                                                                #
+# Project: OVI MK2                                                                          #
+#                                                                                           #
+#                                                                                           #
+# This YAML file contains crucial calibrations for the robot.                               #
+# Any modifications should be carefully reviewed and validated.                             #
+# Incorrect settings can lead to unexpected behavior or damage to the equipment.            #
+#                                                                                           #
+# Once adjustments are made, ensure that all team members are informed.                     #
+# Please proceed with caution.                                                              #
+#                                                                                           #
+#############################################################################################
+
+
+#!Webcam settings
+# This section describes the desired image quality.
+# When talking about image, we are directly describing the webcam capture.
+resolution_x: 1920 # Image heigth
+resolution_y: 1080 # Image width
+flip_x_axis: false # Flip the image along the X axis
+flip_y_axis: true # Flip the image along the Y axis
+
+#!Color settings
+# This section describes the bounds for detecting objects by color
+# All values must be expressed in the HSL range
+# Hue is contained between 0 and 360
+hue:
+  - 85.0 # Min hue
+  - 150.0 # Max hue
+# Saturation is contained between 0 and 100
+saturation:
+  - 10.0 # Min saturation
+  - 100.0 # Max saturation
+# Lightness is contained between 0 and 100
+lightness:
+  - 10.0 # Min light
+  - 80.0 # Max light
+
+#!Sensitivity settings
+# This section describes the sensitivity of the movement algorithm
+# By default, the gripping zone is the center of the image
+center_offset_x: 0 # How many pixels on the X axis to offset the center by
+center_offset_y: 0 # How many pixels on the Y axis to offset the center by
+max_deviation: 0 # Epressed in pixels, how far can the object be from the center
+
+#!Networking settings
+# This section describes the settings for making the POST requests for communication with the hardware
+request_ip: "192.168.4.1" # The destination of the POST requests
+webgui_port: ":8080" # The port on wich to start the webserver
+
+#!Debugging settings
+# This section describes the settings used for debugging
+# Live reload is a very expensive feature, that provides minimal improvements
+# If possible, please disable this
+live_reload: true # If this calibrations file should be continuously read, in order to keep calibrations up to date
+reload_interval: 500 # In miliseconds, how much time to wait between each reload 
+
+#!Movement settings
+# This section describes the way the robot moves
+rotation_speed: 75 # An integer contained between 0 and 255, describing the speed of rotation of the baseplate
+upwards_speed: 255 # An integer between 0 and 255, describing the speed whilst moving upwards
+extension_speed: 255 # An integer between 0 and 255, describing the speed of extension of the second actuator 
+
+#!Limitations settings
+# This section describes the hardware limits of each component
+rotation_limit: 0 # How many miliseconds can this part run at the specified speed, before it hits a limit
+upwards_limit: 25000 # How many miliseconds can this part run at the specified speed, before it hits a limit
+downwards_limit: 25000 # How many miliseconds can this part run at the specified speed, before it hits a limit
+
