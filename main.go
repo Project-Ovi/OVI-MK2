@@ -46,7 +46,7 @@ type Calibrations struct {
 	// Sensitivity settings
 	Center_offset_x int
 	Center_offset_y int
-	Max_deviation   int
+	Max_deviation   float64
 
 	// Networking settings
 	Request_ip  string
@@ -59,13 +59,17 @@ type Calibrations struct {
 	// Speed settings
 	Rotation_speed  int
 	Upwards_speed   int
-	Downwards_speed int
+	Extension_speed int
 
 	// Limit settings
-	Rotation_limit  int
-	Upwards_limit   int
-	Downwards_limit int
+	Rotation_limit      int
+	Rotation_revolution int
+	Upwards_limit       int
+	Extension_limit     int
+	Manual_interval     float64
 }
+
+var Cx, Cy = -1, -1
 
 var globalCollectedData []data
 var calibrationData Calibrations
@@ -235,7 +239,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				globalCollectedData[4].content = msg[3:]
 
 			case "CTR":
-				fmt.Println(msg[3:])
+				globalCollectedData[6].content = msg[3:]
 			}
 		}
 	}()
@@ -273,12 +277,13 @@ func collectData() {
 	globalCollectedData[4].prefix = "MAN"
 	globalCollectedData[4] = data{
 		prefix:  "MAN",
-		content: "0",
+		content: "1",
 	}
 	globalCollectedData[5] = data{
 		prefix:  "CON",
 		content: "0",
 	}
+	globalCollectedData[6].prefix = "CTR"
 
 	prevCamera := "-1"
 	for {
@@ -334,7 +339,6 @@ func collectData() {
 			}
 
 			// Convert img
-			Cx, Cy := -1, -1
 			if globalCollectedData[4].content == "0" {
 				_, Cx, Cy = findGreen(temp, 100)
 			}
@@ -500,6 +504,7 @@ func main() {
 
 	// Calculate movements
 	go func() {
+		home()
 		for {
 			if globalCollectedData[4].content == "0" {
 				autoRoam()
@@ -513,10 +518,135 @@ func main() {
 	collectData()
 }
 
+var rot_i, up_i, ext_i time.Duration
+
+func home() {
+	// Extend everything
+	move(0, calibrationData.Upwards_speed, calibrationData.Extension_speed, true)
+	time.Sleep(time.Duration(max(calibrationData.Upwards_limit, calibrationData.Extension_limit)) * time.Millisecond)
+
+	// Move extension to half the position
+	move(0, 0, -calibrationData.Extension_speed, true)
+	time.Sleep(time.Duration(calibrationData.Extension_limit/2) * time.Millisecond)
+
+	// End movement
+	move(0, 0, 0, false)
+
+	// Set vars
+	up_i = time.Duration(calibrationData.Upwards_limit) * time.Millisecond
+	ext_i = time.Duration(calibrationData.Extension_limit/2) * time.Millisecond
+}
+
 func autoRoam() {
-	// fmt.Println("AUTO")
+	// Find center of image
+	img_Cx := float64(img.Cols()) / 2.0
+	img_Cy := float64(img.Rows()) / 2.0
+
+	// Ofset center
+	img_Cx += float64(calibrationData.Center_offset_x)
+	img_Cy += float64(calibrationData.Center_offset_y)
+
+	// Find distance
+	dist := math.Sqrt(math.Pow(float64(Cx)-img_Cx, 2) + math.Pow(float64(Cy)-img_Cy, 2))
+
+	if dist <= calibrationData.Max_deviation {
+		// Object can be picked up
+		// Drop down to object
+		move(0, -calibrationData.Upwards_speed, 0, false)
+		time.Sleep(up_i)
+
+		// Grab object
+		move(0, 0, 0, true)
+
+		// Move up
+		move(0, calibrationData.Upwards_speed, 0, true)
+		time.Sleep(up_i)
+
+		// Rotate to the start position
+		move(-calibrationData.Rotation_speed, 0, 0, true)
+		time.Sleep(time.Duration(rot_i.Milliseconds()/int64(calibrationData.Rotation_revolution)) * time.Millisecond)
+
+		// Move to the limit of the extension
+		move(0, 0, calibrationData.Extension_speed, true)
+		time.Sleep(time.Duration(int64(calibrationData.Extension_limit)-ext_i.Milliseconds()) * time.Millisecond)
+
+		// Drop down
+		move(0, -calibrationData.Upwards_speed, 0, true)
+		time.Sleep(up_i)
+
+		// Release object
+		move(0, 0, 0, false)
+
+		// Move back up
+		move(0, calibrationData.Upwards_speed, 0, false)
+		time.Sleep(up_i)
+
+		// Move to the center of the extension
+		move(0, 0, -calibrationData.Extension_speed, false)
+		time.Sleep(time.Duration(calibrationData.Extension_limit/2) * time.Millisecond)
+		ext_i = time.Duration(calibrationData.Extension_limit/2) * time.Millisecond
+
+		// Return to last known position
+		move(calibrationData.Rotation_speed, 0, 0, true)
+		time.Sleep(time.Duration(rot_i.Milliseconds()/int64(calibrationData.Rotation_revolution)) * time.Millisecond)
+
+		return
+	}
+
+	if Cx != -1 && Cy != -1 {
+		t := time.Now()
+		// Object can be seen, but not grabbed
+		rot := 0
+		ext := 0
+		// Check what we need move
+		if Cx > int(calibrationData.Max_deviation) {
+			rot = -(Cx - int(img_Cx)) / int(math.Abs(float64(Cx)-img_Cx))
+		}
+		if Cy > int(calibrationData.Max_deviation) {
+			ext = (Cy - int(img_Cy)) / int(math.Abs(float64(Cy)-img_Cy))
+		}
+
+		// Move
+		move(rot*calibrationData.Rotation_speed, 0, ext*calibrationData.Extension_speed, false)
+		rot_i += time.Since(t) * time.Duration(rot)
+		ext_i += time.Since(t) * time.Duration(ext)
+		return
+	}
+
+	// If nothing, move forward
+	t := time.Now()
+	move(calibrationData.Rotation_speed, 0, 0, false)
+	rot_i += time.Since(t)
 }
 
 func manulaRoam() {
-	// fmt.Println("MANUAL")
+	com := globalCollectedData[6].content
+	globalCollectedData[6].content = ""
+
+	switch com {
+	case "F":
+		move(0, 0, calibrationData.Extension_speed, false)
+		interval := time.Duration(calibrationData.Manual_interval) * time.Millisecond
+		time.Sleep(interval)
+	case "R":
+		move(calibrationData.Rotation_speed, 0, 0, false)
+		interval := time.Duration(calibrationData.Manual_interval) * time.Millisecond
+		time.Sleep(interval)
+	case "B":
+		move(0, 0, -calibrationData.Extension_speed, false)
+		interval := time.Duration(calibrationData.Manual_interval) * time.Millisecond
+		time.Sleep(interval)
+	case "L":
+		move(-calibrationData.Rotation_speed, 0, 0, false)
+		interval := time.Duration(calibrationData.Manual_interval) * time.Millisecond
+		time.Sleep(interval)
+	case "U":
+		move(0, calibrationData.Upwards_speed, 0, false)
+		interval := time.Duration(calibrationData.Manual_interval) * time.Millisecond
+		time.Sleep(interval)
+	case "D":
+		move(0, -calibrationData.Upwards_speed, 0, false)
+		interval := time.Duration(calibrationData.Manual_interval) * time.Millisecond
+		time.Sleep(interval)
+	}
 }

@@ -47,7 +47,7 @@ lightness:
 # By default, the gripping zone is the center of the image
 center_offset_x: 0 # How many pixels on the X axis to offset the center by
 center_offset_y: 0 # How many pixels on the Y axis to offset the center by
-max_deviation: 0 # Epressed in pixels, how far can the object be from the center
+max_deviation: 0.0 # Epressed in pixels, how far can the object be from the center
 
 #!Networking settings
 # This section describes the settings for making the POST requests for communication with the hardware
@@ -70,6 +70,10 @@ extension_speed: 255 # An integer between 0 and 255, describing the speed of ext
 #!Limitations settings
 # This section describes the hardware limits of each component
 rotation_limit: 0 # How many miliseconds can this part run at the specified speed, before it hits a limit
+rotation_revolution: 25000 # How many miliseconds does it take to do a full loop and return to the start position
 upwards_limit: 25000 # How many miliseconds can this part run at the specified speed, before it hits a limit
-downwards_limit: 25000 # How many miliseconds can this part run at the specified speed, before it hits a limit
+extension_limit: 25000 # How many miliseconds can this part run at the specified speed, before it hits a limit
+
+#!Manual mode settings
+manual_interval: 2000.0 # How many miliseconds to move
 
