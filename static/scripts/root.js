@@ -30,8 +30,6 @@ function connect() {
                     break;
                 }
                 cameras = event.data.substring(3).split("|");
-                cameras.push("HP Pula");
-                cameras.push("HP HD Pula");
 
                 cameras_container.innerHTML = "";
                 for (let i=0; i < cameras.length; i++) {
