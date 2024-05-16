@@ -541,7 +541,7 @@ func autoRoam() {
 	// Make sure we don't overrun a limit
 	if int(rot_i.Milliseconds()) > calibrationData.Rotation_limit && calibrationData.Rotation_limit > 0 {
 		move(-calibrationData.Rotation_speed, 0, 0, true)
-		time.Sleep(time.Duration(calibrationData.Rotation_limit) * time.Millisecond)
+		time.Sleep(time.Duration(calibrationData.Rotation_limit%calibrationData.Rotation_revolution) * time.Millisecond)
 	}
 
 	// Find center of image
