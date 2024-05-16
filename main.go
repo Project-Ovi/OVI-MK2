@@ -627,6 +627,10 @@ func autoRoam() {
 
 func manulaRoam() {
 	com := globalCollectedData[6].content
+	if com == "" {
+		return
+	}
+	log.Printf("Received command: %s\n", fmt.Sprint(globalCollectedData[6]))
 	globalCollectedData[6].content = ""
 
 	switch com {
