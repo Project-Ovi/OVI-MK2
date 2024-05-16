@@ -37,6 +37,7 @@ void setup() {
   pinMode(7, OUTPUT);
   pinMode(15, OUTPUT);
   pinMode(16, OUTPUT);
+  pinMode(17, OUTPUT);
 }
 
 void loop(){
@@ -132,6 +133,9 @@ void handleRequest(String header) {
     
     } else if (compiledData[i].type == "E2") {
       analogWrite(16, compiledData[i].value.toInt());
+    
+    } else if (compiledData[i].type == "G1") {
+      analogWrite(17, compiledData[i].value.toInt());
     
     }
   }
