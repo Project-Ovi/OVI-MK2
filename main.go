@@ -77,6 +77,8 @@ var calibrationsLoaded = false
 var img gocv.Mat
 var cam *gocv.VideoCapture
 
+var cameraIDs []int
+
 var HTTPclient = &http.Client{}
 
 func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
@@ -140,6 +142,9 @@ func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
 		Cx += val.X
 		Cy += val.Y
 	}
+	if len(conts_points[max_index]) < 1 {
+		return img, -1, -1
+	}
 	Cx /= len(conts_points[max_index])
 	Cy /= len(conts_points[max_index])
 
@@ -165,11 +170,20 @@ func findCameras() []string {
 	}
 	text := string(out)
 	var cameras []string
-	for _, val := range strings.Split(text, "\n") {
+	lines := strings.Split(text, "\n")
+	for i, val := range lines {
 		if len(val) < 1 {
 			continue
 		}
 		if val[0] != '\t' {
+			cam := lines[i+1]
+			id, err := strconv.Atoi(string(cam[len(cam)-1]))
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			cameraIDs = append(cameraIDs, id)
 			cameras = append(cameras, strings.ReplaceAll(val, ":", ""))
 		}
 	}
@@ -300,7 +314,10 @@ func collectData() {
 				}
 
 				// Open camera at ID
-				cam, err = gocv.VideoCaptureDevice(id)
+				if prevCamera != "-1" {
+					cam.Close()
+				}
+				cam, err = gocv.VideoCaptureDevice(cameraIDs[id])
 				if err != nil {
 					if id >= len(findCameras()) {
 						log.Println("Camera index out of range:")
@@ -486,6 +503,7 @@ func loadConfigContinuous() {
 
 func main() {
 	// Initialize data
+	findCameras()
 	go loadConfigContinuous()
 	globalCollectedData = make([]data, 20)
 	img = gocv.NewMat()
@@ -512,6 +530,12 @@ func main() {
 				manulaRoam()
 			}
 		}
+	}()
+
+	// Prepare cleanup
+	defer func() {
+		cam.Close()
+		img.Close()
 	}()
 
 	// Start collecting data
@@ -605,11 +629,11 @@ func autoRoam() {
 		rot := 0
 		ext := 0
 		// Check what we need move
-		if Cx > int(calibrationData.Max_deviation) {
-			rot = -(Cx - int(img_Cx)) / int(math.Abs(float64(Cx)-img_Cx))
+		if Cx > int(calibrationData.Max_deviation) && float64(Cx) != img_Cx {
+			rot = int(-(float64(Cx) - img_Cx) / math.Abs(float64(Cx)-img_Cx))
 		}
-		if Cy > int(calibrationData.Max_deviation) {
-			ext = (Cy - int(img_Cy)) / int(math.Abs(float64(Cy)-img_Cy))
+		if Cy > int(calibrationData.Max_deviation) && float64(Cy) != img_Cx {
+			ext = int((float64(Cy) - img_Cy) / math.Abs(float64(Cy)-img_Cy))
 		}
 
 		// Move

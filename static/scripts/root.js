@@ -73,7 +73,7 @@ function connect() {
     }
 
     websocket.onclose = function() {
-        setTimeout(connect, 10);
+        setTimeout(connect, 1000);
     }
 
     websocket.onerror = websocket.onclose
