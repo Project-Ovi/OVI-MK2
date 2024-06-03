@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"image"
@@ -401,7 +402,7 @@ func collectData() {
 
 func move(rotation int, up int, extension int, grip bool) error {
 	// Make a request
-	req, err := http.NewRequest("POST", calibrationData.Request_ip, nil)
+	req, err := http.NewRequest(http.MethodPost, calibrationData.Request_ip, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		return err
 	}
@@ -422,7 +423,7 @@ func move(rotation int, up int, extension int, grip bool) error {
 	}
 
 	// Set upwards movement
-	if rotation > 0 {
+	if up > 0 {
 		req.Header.Set("U1", fmt.Sprint(up))
 		req.Header.Set("U2", "0")
 	} else if rotation < 0 {
@@ -434,7 +435,7 @@ func move(rotation int, up int, extension int, grip bool) error {
 	}
 
 	// Set extend
-	if rotation > 0 {
+	if extension > 0 {
 		req.Header.Set("E1", fmt.Sprint(extension))
 		req.Header.Set("E2", "0")
 	} else if rotation < 0 {
@@ -447,14 +448,15 @@ func move(rotation int, up int, extension int, grip bool) error {
 
 	// Set gripper position
 	if grip {
-		req.Header.Set("G", "255")
+		req.Header.Set("G1", "255")
 	} else {
-		req.Header.Set("G", "0")
+		req.Header.Set("G1", "0")
 	}
 
 	// Make request
 	resp, err := HTTPclient.Do(req)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -683,4 +685,6 @@ func manulaRoam() {
 		interval := time.Duration(calibrationData.Manual_interval) * time.Millisecond
 		time.Sleep(interval)
 	}
+
+	move(0, 0, 0, false)
 }
