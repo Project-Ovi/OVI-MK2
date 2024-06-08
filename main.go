@@ -524,7 +524,9 @@ func main() {
 
 	// Calculate movements
 	go func() {
+		log.Println("Started homing sequence")
 		home()
+		log.Println("Finished homing sequence")
 		for {
 			if globalCollectedData[4].content == "0" {
 				autoRoam()

@@ -51,7 +51,7 @@ max_deviation: 0.0 # Epressed in pixels, how far can the object be from the cent
 
 #!Networking settings
 # This section describes the settings for making the POST requests for communication with the hardware
-request_ip: "http://192.168.4.1" # The destination of the POST requests
+request_ip: "http://192.168.100.2" # The destination of the POST requests
 webgui_port: ":8080" # The port on wich to start the webserver
 
 #!Debugging settings
