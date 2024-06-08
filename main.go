@@ -389,6 +389,7 @@ func collectData() {
 
 			// Convert to base64
 			encodedIMG := base64.StdEncoding.EncodeToString(buff.GetBytes())
+			buff.Close()
 
 			// Save data
 			globalCollectedData[0].content = encodedIMG
