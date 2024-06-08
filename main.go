@@ -299,6 +299,10 @@ func collectData() {
 		content: "0",
 	}
 	globalCollectedData[6].prefix = "CTR"
+	globalCollectedData[7] = data{
+		prefix:  "HOM",
+		content: "0",
+	}
 
 	prevCamera := "-1"
 	for {
@@ -550,10 +554,12 @@ var rot_i, up_i, ext_i time.Duration
 
 func home() {
 	// Extend everything
+	globalCollectedData[7].content = "The arm is homing.\n Progress: 0%"
 	move(0, calibrationData.Upwards_speed, calibrationData.Extension_speed, true)
 	time.Sleep(time.Duration(max(calibrationData.Upwards_limit, calibrationData.Extension_limit)) * time.Millisecond)
 
 	// Move extension to half the position
+	globalCollectedData[7].content = "The arm is homing.\n Progress: 50%"
 	move(0, 0, -calibrationData.Extension_speed, true)
 	time.Sleep(time.Duration(calibrationData.Extension_limit/2) * time.Millisecond)
 
@@ -563,6 +569,9 @@ func home() {
 	// Set vars
 	up_i = time.Duration(calibrationData.Upwards_limit) * time.Millisecond
 	ext_i = time.Duration(calibrationData.Extension_limit/2) * time.Millisecond
+
+	// Release webgui
+	globalCollectedData[7].content = "0"
 }
 
 func autoRoam() {

@@ -9,9 +9,12 @@ const CyDisp = document.getElementById("Cy");
 const toggleButton = document.getElementById("button");
 const coorddisp = document.getElementById("coorddisp");
 const ctrlPanel = document.getElementById("controlPanel");
+const warnPanel = document.getElementById("warning");
+const warnTitle = warnPanel.getElementsByClassName("title")[0];
+const warnDescription = warnPanel.getElementsByClassName("description")[0];
 
 let websocket;
-let cameras, Cx, Cy, manual=0, camera_index;
+let cameras, Cx, Cy, manual=0, camera_index, homing=0;
 
 var dropped_down = true;
 let drop_HTML;
@@ -69,6 +72,14 @@ function connect() {
                 camera_index = event.data.substring(3);
                 used_camera.textContent = cameras[camera_index];
                 break;
+            case "HOM":
+                homing = event.data.substring(3);
+                if (homing != 0) {
+                    warnPanel.style.display = "flex";
+                    warnDescription.textContent = homing
+                } else {
+                    warnPanel.style.display = "none";
+                }
         }
     }
 
