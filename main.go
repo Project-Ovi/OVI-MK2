@@ -83,17 +83,31 @@ var cameraIDs []int
 var HTTPclient = &http.Client{}
 
 func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
+	// Variables
+	var lower_bound, upper_bound, removedMask, mask gocv.Mat
+	var contours gocv.PointsVector
+
+	// Close everything at exit
+	defer func() {
+		lower_bound.Close()
+		upper_bound.Close()
+		removedMask.Close()
+		mask.Close()
+		contours.Close()
+	}()
+
+	// Lock to OS
 	runtime.LockOSThread()
 
 	// Convert to HLS
 	gocv.CvtColor(img, &img, gocv.ColorBGRToHLS)
 
 	// Apply mask
-	lower_bound := gocv.NewMatWithSizeFromScalar(gocv.NewScalar(calibrationData.Hue[0]/2.0, calibrationData.Lightness[0]/100.0*255.0, calibrationData.Saturation[0]/100.0*255.0, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
-	upper_bound := gocv.NewMatWithSizeFromScalar(gocv.NewScalar(calibrationData.Hue[1]/2.0, calibrationData.Lightness[1]/100.0*255.0, calibrationData.Saturation[1]/100.0*255.0, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
-	mask := gocv.NewMat()
+	lower_bound = gocv.NewMatWithSizeFromScalar(gocv.NewScalar(calibrationData.Hue[0]/2.0, calibrationData.Lightness[0]/100.0*255.0, calibrationData.Saturation[0]/100.0*255.0, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
+	upper_bound = gocv.NewMatWithSizeFromScalar(gocv.NewScalar(calibrationData.Hue[1]/2.0, calibrationData.Lightness[1]/100.0*255.0, calibrationData.Saturation[1]/100.0*255.0, 0.0), img.Rows(), img.Cols(), gocv.MatTypeCV8UC3)
+	mask = gocv.NewMat()
 	gocv.InRange(img, lower_bound, upper_bound, &mask)
-	removedMask := gocv.NewMat()
+	removedMask = gocv.NewMat()
 	gocv.Merge([]gocv.Mat{mask, mask, mask}, &removedMask)
 	gocv.BitwiseAnd(img, removedMask, &img)
 
@@ -108,15 +122,10 @@ func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
 	gocv.Threshold(removedMask, &removedMask, 200.0, 255.0, gocv.ThresholdBinary)
 
 	// Find contours
-	contours := gocv.FindContours(removedMask, gocv.RetrievalCComp, gocv.ChainApproxNone)
+	contours = gocv.FindContours(removedMask, gocv.RetrievalCComp, gocv.ChainApproxNone)
 
 	conts_points := contours.ToPoints()
 	if len(conts_points) <= 0 {
-		lower_bound.Close()
-		upper_bound.Close()
-		removedMask.Close()
-		mask.Close()
-		contours.Close()
 		return img, -1, -1
 	}
 
@@ -129,11 +138,6 @@ func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
 	}
 
 	if len(conts_points[max_index]) < min_points {
-		lower_bound.Close()
-		upper_bound.Close()
-		removedMask.Close()
-		mask.Close()
-		contours.Close()
 		return img, -1, -1
 	}
 
@@ -152,12 +156,6 @@ func findGreen(img gocv.Mat, min_points int) (gocv.Mat, int, int) {
 	// Draw center
 	gocv.Circle(&img, image.Pt(Cx, Cy), 1, color.RGBA{R: 0, G: 0, B: 255, A: 255}, 50)
 	gocv.DrawContours(&img, contours, max_index, color.RGBA{R: 255, G: 0, B: 0, A: 255}, 20)
-
-	lower_bound.Close()
-	upper_bound.Close()
-	removedMask.Close()
-	mask.Close()
-	contours.Close()
 
 	return img, Cx, Cy
 }
@@ -350,6 +348,7 @@ func collectData() {
 				log.Println("Failed to read webcam")
 				return
 			}
+			defer temp.Close()
 
 			// Flip image
 			if calibrationData.Flip_x_axis && calibrationData.Flip_y_axis {
