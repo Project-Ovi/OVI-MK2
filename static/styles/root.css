@@ -19,6 +19,7 @@ body {
     border-radius: 10px;
     height: 75vh;
     width: auto;
+    min-width: 50vw;
 
     box-shadow: 25px 25px 25px 0px #22577A;
     z-index: 9998;
@@ -229,7 +230,7 @@ body {
     left: 0;
     top: 0;
 
-    display: flex;
+    display: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;

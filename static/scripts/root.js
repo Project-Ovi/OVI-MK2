@@ -13,7 +13,7 @@ const warnPanel = document.getElementById("warning");
 const warnTitle = warnPanel.getElementsByClassName("title")[0];
 const warnDescription = warnPanel.getElementsByClassName("description")[0];
 
-let websocket;
+let websocket = new WebSocket("/ws");;
 let cameras, Cx, Cy, manual=0, camera_index, homing=0;
 
 var dropped_down = true;
@@ -21,74 +21,75 @@ let drop_HTML;
 
 function connect() {
     websocket = new WebSocket("/ws");
-
-    websocket.onmessage = function(event) {
-
-        switch(event.data.substring(0, 3)) {
-            case "CAM":
-                webcam.src = "data:image/png;base64,"+event.data.substring(3);
-                break;
-            case "CAS":
-                if (dropped_down) {
-                    break;
-                }
-                cameras = event.data.substring(3).split("|");
-
-                cameras_container.innerHTML = "";
-                for (let i=0; i < cameras.length; i++) {
-                    let child = document.createElement('div');
-                    child.onclick = function() {
-                        toggle_drop_down();
-                        websocket.send("CAM" + i);
-                    }
-                    child.textContent = cameras[i];
-                    child.classList.add("camera-entry")
-                    child.style.display = "none";
-
-                    cameras_container.appendChild(child);
-                }
-                drop_HTML = cameras_container.innerHTML;
-                
-                break;
-            case "CXD":
-                Cx = event.data.substring(3);
-                CxDisp.textContent = Cx;
-                break;
-            case "CYD":
-                Cy = event.data.substring(3);
-                CyDisp.textContent = Cy;
-                break;
-            case "MAN":
-                manual = event.data.substring(3);
-                if (manual == "1") {
-                    coorddisp.style.display = "none";
-                    ctrlPanel.style.display = "flex";
-                } else if (manual == 0) {
-                    coorddisp.style.display = "flex";
-                    ctrlPanel.style.display = "none";
-                }
-                break;
-            case "CON":
-                camera_index = event.data.substring(3);
-                used_camera.textContent = cameras[camera_index];
-                break;
-            case "HOM":
-                homing = event.data.substring(3);
-                if (homing != 0) {
-                    warnPanel.style.display = "flex";
-                    warnDescription.textContent = homing
-                } else {
-                    warnPanel.style.display = "none";
-                }
-        }
-    }
-
-    websocket.onclose = function() {
-        setTimeout(connect, 1000);
-    }
-
-    websocket.onerror = websocket.onclose
 }
+
+websocket.onmessage = function(event) {
+
+    switch(event.data.substring(0, 3)) {
+        case "CAM":
+            webcam.src = "data:image/png;base64,"+event.data.substring(3);
+            break;
+        case "CAS":
+            if (dropped_down) {
+                break;
+            }
+            cameras = event.data.substring(3).split("|");
+
+            cameras_container.innerHTML = "";
+            for (let i=0; i < cameras.length; i++) {
+                let child = document.createElement('div');
+                child.onclick = function() {
+                    toggle_drop_down();
+                    websocket.send("CAM" + i);
+                }
+                child.textContent = cameras[i];
+                child.classList.add("camera-entry")
+                child.style.display = "none";
+
+                cameras_container.appendChild(child);
+            }
+            drop_HTML = cameras_container.innerHTML;
+            
+            break;
+        case "CXD":
+            Cx = event.data.substring(3);
+            CxDisp.textContent = Cx;
+            break;
+        case "CYD":
+            Cy = event.data.substring(3);
+            CyDisp.textContent = Cy;
+            break;
+        case "MAN":
+            manual = event.data.substring(3);
+            if (manual == "1") {
+                coorddisp.style.display = "none";
+                ctrlPanel.style.display = "flex";
+            } else if (manual == 0) {
+                coorddisp.style.display = "flex";
+                ctrlPanel.style.display = "none";
+            }
+            break;
+        case "CON":
+            camera_index = event.data.substring(3);
+            used_camera.textContent = cameras[camera_index];
+            break;
+        case "HOM":
+            homing = event.data.substring(3);
+            if (homing != 0) {
+                warnPanel.style.display = "flex";
+                warnDescription.textContent = homing
+            } else {
+                warnPanel.style.display = "none";
+            }
+    }
+}
+
+websocket.onclose = function() {
+    console.log("Connection dropped! Attempting to reconnect...");
+    setTimeout(connect, 100);
+}
+
+websocket.onerror = websocket.onclose
 
 function toggle_drop_down () {
     dropped_down = !dropped_down;
@@ -148,5 +149,3 @@ document.getElementById("up-ctrl").onclick = function () {
 document.getElementById("down-ctrl").onclick = function () {
     websocket.send("CTR"+"D")
 }
-
-connect();
